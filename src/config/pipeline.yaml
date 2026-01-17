@@ -1,0 +1,59 @@
+# 数据管道定义
+# 环境: ${ENV:dev} (dev|test|prod)
+
+pipelines:
+  - name: recipe_processing
+    description: "食谱数据ETL管道"
+    schedule: "0 0 * * *"  # 每天UTC午夜执行
+    tasks:
+      - name: task1_ingestion
+        type: spark
+        main: com.vitthalmirji.datapipelines.recipe_tasks.execute_task1
+        args:
+          input_path: "${DATA_DIR}/recipes/input"
+          output_path: "${DATA_DIR}/recipes/output/task1"
+        dependencies: []
+
+      - name: task2_transformation
+        type: spark
+        main: com.vitthalmirji.datapipelines.recipe_tasks.execute_task2
+        args:
+          input_path: "${DATA_DIR}/recipes/output/task1"
+          output_path: "${DATA_DIR}/recipes/output/task2"
+        dependencies: 
+          - task1_ingestion
+
+      - name: dq_validation
+        type: data-quality
+        config: conf/data-quality/rules/${ENV}_configs/recipe-task2-dq-rules.json
+        dependencies:
+          - task2_transformation
+
+  - name: clinical_trial
+    description: "临床试验数据管道"
+    schedule: "0 2 * * *"  # 每天UTC 2AM执行
+    tasks:
+      - name: xml_parsing
+        type: spark
+        main: com.vitthalmirji.datapipelines.clinical_trial.parse_xml
+        args:
+          input_dir: "${DATA_DIR}/clinical_trial/xml"
+          output_dir: "${DATA_DIR}/clinical_trial/parsed"
+        dependencies: []
+
+      - name: sponsor_aggregation
+        type: spark-sql
+        script: resources/data/clinical_trial/sql/transformations/sponsors.sql
+        dependencies:
+          - xml_parsing
+
+# 全局配置
+config:
+  spark:
+    master: ${SPARK_MASTER:local[*]}
+    config: conf/spark/sparkConf.conf
+  env_mapping:
+    dev: 
+      DATA_DIR: "resources/data"
+    prod:
+      DATA_DIR: "s3a://prod-data-bucket"

@@ -95,6 +95,8 @@ def read_data_as_spark_dataframe(filetype: str, location: str, options={}, table
             return spark.read.options(**options).orc(location)
         elif str(filetype).lower().__eq__('parquet'):
             return spark.read.options(**options).parquet(location)
+        elif str(filetype).lower().__eq__('jdbc'):
+            return spark.read.format("jdbc").options(**options).load()
         else:
             raise Exception(f"Invalid filetype: {filetype}")
     except Exception as ex:

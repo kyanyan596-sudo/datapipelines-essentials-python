@@ -1,0 +1,35 @@
+# 数据源配置
+sources:
+  # 生产数据库
+  production_db:
+    type: jdbc
+    url: "jdbc:postgresql://prod-db.example.com:5432/production"
+    driver: "org.postgresql.Driver"
+    secret_ref: "prod/db/credentials"  # 引用secrets.py中的密钥
+    
+  # 开发数据库
+  development_db:
+    type: jdbc
+    url: "jdbc:postgresql://dev-db.example.com:5432/development"
+    driver: "org.postgresql.Driver"
+    secret_ref: "dev/db/credentials"
+    
+  # 文件数据源
+  recipes_raw:
+    type: file
+    format: json
+    path: "resources/data/recipes/input"
+    options:
+      multiline: true
+      inferSchema: true
+      
+  recipes_processed:
+    type: file
+    format: parquet
+    path: "resources/data/recipes/output/task1"
+    
+  clinical_trial_data:
+    type: file
+    format: xml
+    path: "resources/data/clinical_trial/data"
+    schema_path: "resources/data/clinical_trial/xml/clinical_study_xsd.xsd"
